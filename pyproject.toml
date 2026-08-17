@@ -1,11 +1,18 @@
 [project]
-name = "attendance-system"
+name = "attendance-workspace"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.14"
+description = "Monorepo workspace for Attendance System and Dashboard"
+requires-python = ">=3.11"
 dependencies = [
-    "mediapipe>=1.0.1",
-    "opencv-contrib-python>=5.0.0.93",
-    "opencv-python>=5.0.0.93",
+    "attendance-tracker",
+    "attendance-backend",
+]
+
+[tool.uv.sources]
+attendance-tracker = { workspace = true }
+attendance-backend = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    "apps/*"
 ]

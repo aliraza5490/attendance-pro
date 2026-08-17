@@ -25,8 +25,17 @@ from mediapipe.tasks.python import vision
 # Configuration & Constants
 # ==============================================================================
 
+import os
+
 BASE_DIR = Path(__file__).resolve().parent
-DATABASE_PATH = BASE_DIR / "attendance.db"
+DATABASE_PATH = Path(
+    os.environ.get(
+        "DATABASE_PATH",
+        (BASE_DIR.parent.parent / "attendance.db")
+        if (BASE_DIR.parent.parent / "attendance.db").exists()
+        else BASE_DIR / "attendance.db",
+    )
+)
 MODEL_PATH = BASE_DIR / "trainer" / "trainer.yml"
 CASCADE_PATH = BASE_DIR / "haarcascades" / "haarcascade_frontalface_default.xml"
 GESTURE_MODEL_PATH = BASE_DIR / "gesture_recognizer.task"

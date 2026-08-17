@@ -1,0 +1,57 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend: FastAPI Dashboard",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "app.main:app",
+        "--reload",
+        "--port",
+        "8000"
+      ],
+      "cwd": "${workspaceFolder}/apps/backend",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/apps/backend",
+        "DATABASE_PATH": "${workspaceFolder}/attendance.db"
+      }
+    },
+    {
+      "name": "Frontend: Next.js Dashboard",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "cwd": "${workspaceFolder}/frontend",
+      "env": {
+        "NODE_OPTIONS": "--no-warnings"
+      }
+    },
+    {
+      "name": "Tracker: Face & Gesture HUD",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/tracker/main.py",
+      "cwd": "${workspaceFolder}/apps/tracker",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/apps/tracker",
+        "DATABASE_PATH": "${workspaceFolder}/attendance.db"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Dashboard Services (Backend + Frontend)",
+      "configurations": [
+        "Backend: FastAPI Dashboard",
+        "Frontend: Next.js Dashboard"
+      ],
+      "stopAll": true
+    }
+  ]
+}

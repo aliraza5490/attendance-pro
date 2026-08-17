@@ -13,9 +13,18 @@ import cv2
 # Configuration & Constants
 # ==============================================================================
 
+import os
+
 BASE_DIR = Path(__file__).resolve().parent
 DATASET_DIR = BASE_DIR / "dataset"
-DATABASE_PATH = BASE_DIR / "attendance.db"
+DATABASE_PATH = Path(
+    os.environ.get(
+        "DATABASE_PATH",
+        (BASE_DIR.parent.parent / "attendance.db")
+        if (BASE_DIR.parent.parent / "attendance.db").exists()
+        else BASE_DIR / "attendance.db",
+    )
+)
 CASCADE_PATH = BASE_DIR / "haarcascades" / "haarcascade_frontalface_default.xml"
 
 TOTAL_SAMPLES = 30
