@@ -16,6 +16,14 @@ attendance_system/
 │   │   ├── main.py             # Live stream gesture & face recognition
 │   │   ├── capture.py          # Face enrollment script (30 samples)
 │   │   ├── train.py            # LBPH trainer
+│   │   ├── core/               # Configuration & SQLite DB operations
+│   │   │   ├── config.py
+│   │   │   └── db.py
+│   │   ├── vision/             # Face models & gesture recognition
+│   │   │   ├── models.py
+│   │   │   └── gesture.py
+│   │   ├── ui/                 # HUD rendering & notification toasts
+│   │   │   └── hud.py
 │   │   ├── dataset/            # Face crops
 │   │   ├── trainer/            # trainer.yml
 │   │   └── haarcascades/

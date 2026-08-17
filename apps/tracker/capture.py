@@ -6,89 +6,11 @@ to the 'dataset/' directory for training.
 """
 
 from pathlib import Path
-import sqlite3
 import cv2
 
-# ==============================================================================
-# Configuration & Constants
-# ==============================================================================
-
-import os
-
-BASE_DIR = Path(__file__).resolve().parent
-DATASET_DIR = BASE_DIR / "dataset"
-DATABASE_PATH = Path(
-    os.environ.get(
-        "DATABASE_PATH",
-        (BASE_DIR.parent.parent / "attendance.db")
-        if (BASE_DIR.parent.parent / "attendance.db").exists()
-        else BASE_DIR / "attendance.db",
-    )
-)
-CASCADE_PATH = BASE_DIR / "haarcascades" / "haarcascade_frontalface_default.xml"
-
-TOTAL_SAMPLES = 30
-FACE_IMAGE_SIZE = (200, 200)
-
-# ==============================================================================
-# Database Functions
-# ==============================================================================
-
-
-def init_database() -> None:
-    """Ensure the required database tables exist."""
-    with sqlite3.connect(DATABASE_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS students (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL
-            )
-            """
-        )
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS attendance (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
-                time TEXT,
-                check_in_time TEXT,
-                check_out_time TEXT,
-                status TEXT,
-                UNIQUE(student_id, date)
-            )
-            """
-        )
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS attendance_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL,
-                action TEXT NOT NULL,
-                date TEXT NOT NULL,
-                time TEXT NOT NULL,
-                timestamp TEXT NOT NULL,
-                FOREIGN KEY (student_id) REFERENCES students(id)
-            )
-            """
-        )
-        conn.commit()
-
-
-def register_student(student_id: int, student_name: str) -> None:
-    """Insert or update a student record in the database."""
-    with sqlite3.connect(DATABASE_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT OR REPLACE INTO students (id, name)
-            VALUES (?, ?)
-            """,
-            (student_id, student_name),
-        )
-        conn.commit()
+from core.config import CASCADE_PATH, DATASET_DIR, FACE_IMAGE_SIZE, TOTAL_SAMPLES
+from core.db import init_database, register_student
+from vision.models import load_cascade_classifier
 
 
 # ==============================================================================
@@ -119,16 +41,17 @@ def prompt_student_details() -> tuple[int, str]:
 # ==============================================================================
 
 
-def capture_face_samples(student_id: int, student_name: str) -> int:
+def capture_face_samples(
+    student_id: int,
+    student_name: str,
+    total_samples: int = TOTAL_SAMPLES,
+    dataset_dir: Path = DATASET_DIR,
+    face_image_size: tuple[int, int] = FACE_IMAGE_SIZE,
+    cascade_path: Path = CASCADE_PATH,
+) -> int:
     """Capture webcam frames, detect faces, and save cropped images."""
-    if not CASCADE_PATH.exists():
-        raise FileNotFoundError(f"Haar cascade XML not found at: {CASCADE_PATH}")
-
-    face_detector = cv2.CascadeClassifier(str(CASCADE_PATH))
-    if face_detector.empty():
-        raise RuntimeError(f"Failed to load cascade classifier from: {CASCADE_PATH}")
-
-    DATASET_DIR.mkdir(parents=True, exist_ok=True)
+    face_detector = load_cascade_classifier(cascade_path)
+    dataset_dir.mkdir(parents=True, exist_ok=True)
 
     camera = cv2.VideoCapture(0)
     if not camera.isOpened():
@@ -139,7 +62,7 @@ def capture_face_samples(student_id: int, student_name: str) -> int:
     print("Position your face in front of the camera. Press 'Q' to cancel/exit.\n")
 
     try:
-        while sample_count < TOTAL_SAMPLES:
+        while sample_count < total_samples:
             success, frame = camera.read()
             if not success:
                 print("Failed to read frame from camera.")
@@ -162,10 +85,10 @@ def capture_face_samples(student_id: int, student_name: str) -> int:
 
                 # Extract face region of interest (ROI) and normalize size
                 face_roi = gray[y : y + height, x : x + width]
-                face_resized = cv2.resize(face_roi, FACE_IMAGE_SIZE)
+                face_resized = cv2.resize(face_roi, face_image_size)
 
                 # Save sample image
-                file_path = DATASET_DIR / f"User.{student_id}.{sample_count}.jpg"
+                file_path = dataset_dir / f"User.{student_id}.{sample_count}.jpg"
                 cv2.imwrite(str(file_path), face_resized)
 
                 # Draw bounding box and progress label
@@ -178,7 +101,7 @@ def capture_face_samples(student_id: int, student_name: str) -> int:
                 )
                 cv2.putText(
                     frame,
-                    f"Samples: {sample_count}/{TOTAL_SAMPLES}",
+                    f"Samples: {sample_count}/{total_samples}",
                     (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.8,
@@ -186,19 +109,18 @@ def capture_face_samples(student_id: int, student_name: str) -> int:
                     2,
                 )
 
-                if sample_count >= TOTAL_SAMPLES:
+                if sample_count >= total_samples:
                     break
 
             cv2.imshow("Enrolling Student - Face Capture", frame)
 
             # Check if user pressed 'q' or 'ESC' to exit early
             key = cv2.waitKey(100) & 0xFF
-            if key in (ord("q"), 27):
+            if key in (ord("q"), ord("Q"), 27):
                 print("Capture cancelled by user.")
                 break
 
     finally:
-        # Guarantee camera and windows release
         camera.release()
         cv2.destroyAllWindows()
 
